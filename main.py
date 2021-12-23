@@ -1,19 +1,26 @@
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
 
 class Velocity:
-    def __init__(self, arr=(0, 0, 0)):
+    def __init__(self, arr=(0., 0., 0.)):
         assert len(arr) == 3, 'Wrong dimensionality'
-        self.components = arr
+        self.components = list(arr)
 
     def __repr__(self):
         return f'velocity[{self[0]}, {self[1]}, {self[2]}]'
 
+    def __iter__(self):
+        yield self[0]
+        yield self[1]
+        yield self[2]
+
+    def __len__(self):
+        return 3
+
     def __getitem__(self, item):
-        assert item in (0,1,2), 'Wrong index'
+        assert item in (0, 1, 2), f'Wrong index {item}'
         return self.components[item]
 
     def __eq__(self, other):
@@ -21,6 +28,9 @@ class Velocity:
             if self[i] != other[i]:
                 return False
         return True
+
+    def __neg__(self):
+        return (-1) * self
 
     def __add__(self, other):
         return Velocity((self[0] + other[0], self[1] + other[1], self[2] + other[2]))
@@ -48,6 +58,22 @@ class Sphere:
         self.radius = radius
         self.mass = mass
         self.v = Velocity(v0)
+        self.time_after_last_hit = 0
+
+    def push_to(self, tau, dv=(0, 0, 0)):
+        if dv != (0, 0, 0):
+            self.v = self.v + Velocity(dv)
+            self.time_after_last_hit = 0
+
+        self.coords[0] += self.v[0] * tau
+        self.coords[1] += self.v[1] * tau
+        self.coords[2] += g / 2 * (2 * self.time_after_last_hit * tau + tau ** 2)
+        self.time_after_last_hit += tau
+
+    def velocities_after_collision(self, other):
+        assert isinstance(other, Sphere)
+        # TODO: допилить физику collision physics https://ru.wikipedia.org/wiki/%D0%A3%D0%B4%D0%B0%D1%80
+        return -self.v, -other.v
 
     def __repr__(self):
         return f"sphere({self.coords}-{self.radius})"
@@ -67,21 +93,22 @@ class Sphere:
         x2, y2 = other.get_props()['x'], other.get_props()['y']
         return ((x1 - x2)**2 + (y1 - y2)**2)**0.5
 
-    def are_colliding(self, other):
+    def collides_with(self, other):
         return self.distance(other) <= (self.radius + other.radius)
 
 
-def create_spheres(n, mass_min=0.1, mass_max=10.1, z_max=100., v0_min=-10., v0_max=10.):
+def create_spheres(n, mass_min=0.1, mass_max=10.1, z_max=100., v0_min=-10., v0_max=10., iter_limit=100):
     i = 0
+    j = 0
     spheres = []
 
-    while i < n:  # place spheres
+    while i < n and j < iter_limit:  # place spheres
         params = {}
         radius_ = radius_min + (radius_max - radius_min) * random.random()
         params['radius'] = radius_
         params['mass'] = mass_min + (mass_max - mass_min) * random.random()
 
-        # z_max is None => z_max == +inf, but it's wrong place where to think about it
+        # z_max is None => z_max == +inf, but it's a wrong place to think about it
         params['center_coords'] = [
             x_min + radius_ + (x_max - x_min - 2 * radius_) * random.random(),
             y_min + radius_ + (y_max - y_min - 2 * radius_) * random.random(),
@@ -97,11 +124,14 @@ def create_spheres(n, mass_min=0.1, mass_max=10.1, z_max=100., v0_min=-10., v0_m
         s = Sphere(**params)
 
         for other in spheres:
-            if s.are_colliding(other):
+            if s.collides_with(other):
                 continue
 
         spheres += [s]
         i += 1
+        j += 1
+
+    assert j < iter_limit, 'Spheres placement is failed! Location search timed out.'
 
     return spheres
 
@@ -145,26 +175,59 @@ if __name__ == '__main__':
     y_min, y_max = 0, 20
     z_min, z_max = 0, 20
     log_param = 100
-    t_max = 10.0
+    t_max = 100.0
     random_state = 227
 
     random.seed(random_state)
-
-    tau = t_max / 1e3
-    current_t = 0
-    current_step = 0
 
     spheres = create_spheres(spheres_num)
 
     # thanks to https://stackoverflow.com/questions/32424670/python-matplotlib-drawing-3d-sphere-with-circumferences
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.set_aspect('auto')
+    ax.set_aspect('equal')
 
     for s in spheres:
         draw_sphere(s, ax)
 
     plt.show()
 
+    tau = t_max / 1e1
+    current_t = 0
+    current_step = 0
+
+    while current_t < t_max:
+        dv_arr = [Velocity() for _ in range(spheres_num)]
+
+        for i in range(spheres_num):
+            for j in range(i+1, spheres_num):
+                if spheres[i].collides_with(spheres[j]):
+                    ui, uj = spheres[i].velocities_after_collision(spheres[j])
+                    dv_arr[i] = dv_arr[i] + ui
+                    dv_arr[j] = dv_arr[j] + uj
+
+        for i, dv in enumerate(dv_arr):
+            spheres[i].push_to(tau=tau, dv=dv)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.set_aspect('equal')
+
+        for s in spheres:
+            draw_sphere(s, ax)
+
+        plt.show()
+
+        if current_step % log_param == 0:
+            # TODO: запилить логирование
+            pass
+
+        current_t += tau
+        current_step += 1
 
 
+# TODO:
+#  - find the way to plot spheres properly. Mb use scatter plot instead
+#  - discover how to calculate velocities after collision
+#  - discover how to locate cube borders and deploy their interaction with spheres
+#  - deploy a mechanism of logging
