@@ -2,53 +2,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 
-from classes import Sphere, Velocity
-
-
-def create_spheres(n,
-                   radius_min, radius_max,
-                   x_min, x_max, y_min, y_max, z_min,  z_max=100.,
-                   mass_min=0.1, mass_max=10.1,
-                   v0_min=-10., v0_max=10.,
-                   iter_limit=100,
-                   g=9.8):
-    i = 0
-    j = 0
-    spheres = []
-
-    while i < n and j < iter_limit:  # place spheres
-        params = {}
-        radius_ = radius_min + (radius_max - radius_min) * random.random()
-        params['radius'] = radius_
-        params['mass'] = mass_min + (mass_max - mass_min) * random.random()
-        params['g'] = g
-
-        # z_max is None => z_max == +inf, but it's a wrong place to think about it
-        params['center_coords'] = [
-            x_min + radius_ + (x_max - x_min - 2 * radius_) * random.random(),
-            y_min + radius_ + (y_max - y_min - 2 * radius_) * random.random(),
-            z_min + radius_ + (z_max - z_min - 2 * radius_) * random.random()
-        ]
-
-        params['v0'] = [
-            v0_min + (v0_max - v0_min) * random.random(),
-            v0_min + (v0_max - v0_min) * random.random(),
-            v0_min + (v0_max - v0_min) * random.random()
-        ]
-
-        s = Sphere(**params)
-
-        for other in spheres:
-            if s.collides_with(other):
-                continue
-
-        spheres += [s]
-        i += 1
-        j += 1
-
-    assert j < iter_limit, 'Spheres placement is failed! Location search timed out.'
-
-    return spheres
+# from classes import Sphere, Velocity
 
 
 def mass2color(mass):
@@ -84,6 +38,9 @@ def draw_sphere(s, ax):
 
 
 def plot(arr, x_min=0, x_max=20, y_min=0, y_max=20, z_min=0, z_max=20):
+    if z_max is None:
+        z_max = z_min + max((x_max-x_min), (y_max-y_min))
+
     ax = plt.axes(projection='3d')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
