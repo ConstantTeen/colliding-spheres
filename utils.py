@@ -1,22 +1,23 @@
-import random
 import numpy as np
 import matplotlib.pyplot as plt
 
-# from classes import Sphere, Velocity
 
-
-def mass2color(mass):
+def mass2color(mass, light_color=(0, 0, 1), heavy_color=(1, 0, 0)):
     """
     Returns color in RGBA format (without alpha). The less the mass of sphere the closer its color to blue.
     The bigger the mass the closer sphere color to red.
     :param mass: mass of the sphere
+    :param light_color: color of object of mass = 0
+    :param heavy_color: color of object of mass = +inf
     :return: tuple(3): rgba color
     """
     def sigmoid(x):  # returns number from 0 to 1 if x from 0 to +inf
         return 2 / (1 + np.exp(-x)) - 1
 
     mass = sigmoid(mass)
-    return mass, 0, 1 - mass
+    return (1 - mass) * light_color[0] + mass * heavy_color[0], \
+           (1 - mass) * light_color[1] + mass * heavy_color[1], \
+           (1 - mass) * light_color[2] + mass * heavy_color[2]
 
 
 def draw_sphere(s, ax):
@@ -33,7 +34,7 @@ def draw_sphere(s, ax):
     y = y_center + r * np.outer(np.sin(u), np.sin(v))
     z = z_center + r * np.outer(np.ones(np.size(u)), np.cos(v))
 
-    color = mass2color(m)
+    color = mass2color(m, light_color=(237/255, 255/255, 198/255), heavy_color=(0/255, 0/255, 0/255))
     ax.plot_surface(x, y, z, rstride=4, cstride=4, color=color, linewidth=0, alpha=0.5)
 
 

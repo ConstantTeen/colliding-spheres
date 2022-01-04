@@ -1,50 +1,39 @@
-import random
-import numpy as np
 import matplotlib.pyplot as plt
-
-from utils import  draw_sphere, plot
-from classes import SystemBuilder, Sphere, Velocity
+import sys
+from utils import plot
+from classes import SystemBuilder
 
 
 if __name__ == '__main__':
-    spheres_num = 10
-    g = 9.8
-    radius_min, radius_max = 1, 5
-    x_min, x_max = 0, 20
-    y_min, y_max = 0, 20
-    z_min, z_max = 0, None
-    log_param = 100
-    t_max = 10.0
+    input_file_path = sys.argv[1]
 
-    random_state = 227
-    random.seed(random_state)
+    params = dict()
 
-    params = {
-        'spheres_num': spheres_num,
-        'g': g,
-        'radius_min': radius_min,
-        'radius_max': radius_max,
-        'x_min': x_min,
-        'x_max': x_max,
-        'y_min': y_min,
-        'y_max': y_max,
-        'z_min': z_min,
-        'z_max': z_max,
-        'log_param': log_param,
-        't_max': t_max,
-        'random_state': random_state
-    }
+    with open(input_file_path, 'r') as f:
+        params['spheres_num'] = int(f.readline())
+        params['g'] = float(f.readline())
+        params['radius_min'], params['radius_max'] = map(float, f.readline().split())
+        params['mass_min'], params['mass_max'] = map(float, f.readline().split())
+
+        x_line = f.readline().split()
+        if x_line[0] not in ('|--', '--|', '|-|', '---'):
+            raise Exception(f'Only "|--", "--|", "---" and "|-|" borders types are allowed for x-axes, not {x_line[0]}')
+        params['x_border_type'], params['x_min'], params['x_max'] = x_line[0], float(x_line[1]), float(x_line[2])
+
+        y_line = f.readline().split()
+        if y_line[0] not in ('|--', '--|', '|-|', '---'):
+            raise Exception(f'Only "|--", "--|", "---" and "|-|" borders types are allowed for x-axes, not {y_line[0]}')
+        params['y_border_type'], params['y_min'], params['y_max'] = y_line[0], float(y_line[1]), float(y_line[2])
+
+        z_line = f.readline().split()
+        if z_line[0] not in ('|--', '--|', '|-|', '---'):
+            raise Exception(f'Only "|--", "--|", "---" and "|-|" borders types are allowed for x-axes, not {z_line[0]}')
+        params['z_border_type'], params['z_min'], params['z_max'] = z_line[0], float(z_line[1]), float(z_line[2])
+
+        params['log_param'] = int(f.readline())
+        params['t_max'] = float(f.readline())
+        params['random_state'] = 227
 
     system = SystemBuilder(**params)
-
-    spheres = system.get_spheres()
-
-    plt.rcParams['figure.figsize'] = (5, 5)
-    plot(spheres, x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max, z_min=z_min, z_max=z_max)
-    system.start_loop(1000)
-
-
-# TODO:
-#  - discover how to calculate velocities after collision
-#  - discover how to locate cube borders and deploy their interaction with spheres
-#  - deploy a mechanism of logging
+    system.start_loop()
+    # plot(system.spheres)
