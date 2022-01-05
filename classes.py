@@ -1,61 +1,7 @@
 import random
 from utils import plot
 from os.path import join
-
-
-class Velocity:
-    def __init__(self, arr=(0., 0., 0.)):
-        assert len(arr) == 3, 'Wrong dimensionality'
-        self.components = list(arr)
-
-    def scalar_product(self, other):
-        other = Velocity(other)
-        return sum(self.components[i] * other.components[i] for i in range(3))
-
-    def __repr__(self):
-        return f'velocity[{self[0]}, {self[1]}, {self[2]}]'
-
-    def __iter__(self):
-        yield self[0]
-        yield self[1]
-        yield self[2]
-
-    def __len__(self):
-        return 3
-
-    def __getitem__(self, item):
-        assert item in (0, 1, 2), f'Wrong index {item}'
-        return self.components[item]
-
-    def __eq__(self, other):
-        for i in range(3):
-            if self[i] != other[i]:
-                return False
-        return True
-
-    def __neg__(self):
-        return (-1) * self
-
-    def __add__(self, other):
-        other = Velocity(other)
-        return Velocity((self[0] + other[0], self[1] + other[1], self[2] + other[2]))
-
-    def __mul__(self, const):
-        return Velocity((self[0]*const, self[1]*const, self[2]*const))
-
-    def __rmul__(self, const):
-        return self*const
-
-    def __sub__(self, other):
-        other = Velocity(other)
-        return self + other * (-1)
-
-    def __truediv__(self, const):
-        assert const != 0, 'Division by zero'
-        return self * (1/const)
-
-    def __abs__(self):
-        return (self[0]**2 + self[1]**2 + self[2]**2)**0.5
+import numpy as np
 
 
 class System:
@@ -90,12 +36,12 @@ class System:
             params['radius'] = radius_
             params['mass'] = mass_min + (mass_max - mass_min) * random.random()
 
-            params['center_coords'] = [None, None, None]
+            params['center_coords'] = np.empty(3)
 
             for i, min_, max_ in zip([0, 1, 2], [x_min, y_min, z_min], [x_max, y_max, z_max]):
                 params['center_coords'][i] = min_ + radius_ + (max_ - min_ - 2 * radius_) * random.random()
 
-            params['v'] = Velocity([
+            params['v'] = np.array([
                 v0_min + (v0_max - v0_min) * random.random(),
                 v0_min + (v0_max - v0_min) * random.random(),
                 v0_min + (v0_max - v0_min) * random.random()
@@ -170,19 +116,17 @@ class System:
             current_t += tau
 
             for s in self.spheres:
-                s.coords[0] += tau * s.v[0]
-                s.coords[1] += tau * s.v[1]
-                s.coords[2] += tau * s.v[2]
+                s.coords = s.coords + tau * s.v
 
             for i, j in self.get_colliding_spheres():
                 si, sj = self.spheres[i], self.spheres[j]
                 mi, mj = si.mass, sj.mass
 
-                r_rel = [si.coords[0] - sj.coords[0], si.coords[1] - sj.coords[1], si.coords[2] - sj.coords[2]]
+                r_rel = si.coords - sj.coords
                 v_rel = si.v - sj.v
                 v_cm = (mi * si.v + mj * sj.v) / (mi + mj)
 
-                v_rel = 2 * Velocity(r_rel) * Velocity(r_rel).scalar_product(v_rel) / abs(Velocity(r_rel))**2 - v_rel
+                v_rel = 2 * r_rel * np.dot(r_rel, v_rel) / np.dot(r_rel, r_rel) - v_rel
 
                 si.v = v_cm + v_rel * mj / (mi + mj)
                 sj.v = v_cm - v_rel * mi / (mi + mj)
@@ -192,25 +136,25 @@ class System:
 
                 if 'yz' in bounds:
                     s.coords[0] = self.params['x_min'] + s.radius
-                    s.v = Velocity([-s.v[0], s.v[1], s.v[2]])
+                    s.v[0] = -s.v[0]
                 if 'YZ' in bounds:
                     s.coords[0] = self.params['x_max'] - s.radius
-                    s.v = Velocity([-s.v[0], s.v[1], s.v[2]])
+                    s.v[0] = -s.v[0]
                 if 'xz' in bounds:
                     s.coords[1] = self.params['y_min'] + s.radius
-                    s.v = Velocity([s.v[0], -s.v[1], s.v[2]])
+                    s.v[1] = -s.v[1]
                 if 'XZ' in bounds:
                     s.coords[1] = self.params['y_max'] - s.radius
-                    s.v = Velocity([s.v[0], -s.v[1], s.v[2]])
+                    s.v[1] = -s.v[1]
                 if 'xy' in bounds:
                     s.coords[2] = self.params['z_min'] + s.radius
-                    s.v = Velocity([s.v[0], s.v[1], -s.v[2]])
+                    s.v[2] = -s.v[2]
                 if 'XY' in bounds:
                     s.coords[2] = self.params['z_max'] - s.radius
-                    s.v = Velocity([s.v[0], s.v[1], -s.v[2]])
+                    s.v[2] = -s.v[2]
 
             for s in self.spheres:
-                s.v = s.v - Velocity([0, 0, s.mass * self.params['g'] * tau])
+                s.v[2] = s.v[2] - s.mass * self.params['g'] * tau
 
             if current_step % self.params['log_param'] == 0:
                 plot(self.spheres, **{
@@ -234,10 +178,8 @@ class System:
                 #         f.write(f'{s.coords[0]:.4f} {s.coords[1]:.4f} {s.coords[2]:.4f} {s.radius:.4f} {s.mass:.4f}\n')
 
     @staticmethod
-    def distance(sphere1, sphere2):
-        x1, y1, z1 = sphere1.coords[0], sphere1.coords[1], sphere1.coords[2]
-        x2, y2, z2 = sphere2.coords[0], sphere2.coords[1], sphere2.coords[2]
-        return ((x1 - x2)**2 + (y1 - y2)**2 + (z1 - z2)**2)**0.5
+    def distance(s1, s2):
+        return np.linalg.norm(s1.coords - s2.coords)
 
 
 @lambda c: c()
@@ -259,10 +201,10 @@ class SystemBuilder:
 
 class Sphere:
     def __init__(self, center_coords, radius, mass, v=(0, 0, 0)):
-        self.coords = center_coords  # array like
+        self.coords = np.array(center_coords)  # array like
         self.radius = radius
         self.mass = mass
-        self.v = Velocity(v)
+        self.v = np.array(v)
         self.time_after_last_hit = 0
 
     def __repr__(self):

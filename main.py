@@ -41,7 +41,5 @@ if __name__ == '__main__':
     # plot(system.spheres)
 
 # TODO:
-# 1. чтение input.cfg переделать
-# 2. Velocity -> numpy
 # 3. выпилить plot, запилить архив
 # 4. визуализатор в виде .py
