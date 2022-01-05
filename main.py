@@ -12,28 +12,36 @@ if __name__ == '__main__':
     with open(input_file_path, 'r') as f:
         params['spheres_num'] = int(f.readline())
         params['g'] = float(f.readline())
-        params['radius_min'], params['radius_max'] = map(float, f.readline().split())
-        params['mass_min'], params['mass_max'] = map(float, f.readline().split())
+        params['radius_min'] = float(f.readline())
+        params['radius_max'] = float(f.readline())
+        params['mass_min'] = float(f.readline())
+        params['mass_max'] = float(f.readline())
 
-        x_line = f.readline().split()
+        x_line = [f.readline().rstrip(), f.readline(), f.readline()]
         if x_line[0] not in ('|--', '--|', '|-|', '---'):
             raise Exception(f'Only "|--", "--|", "---" and "|-|" borders types are allowed for x-axes, not {x_line[0]}')
         params['x_border_type'], params['x_min'], params['x_max'] = x_line[0], float(x_line[1]), float(x_line[2])
 
-        y_line = f.readline().split()
+        y_line = [f.readline().rstrip(), f.readline(), f.readline()]
         if y_line[0] not in ('|--', '--|', '|-|', '---'):
-            raise Exception(f'Only "|--", "--|", "---" and "|-|" borders types are allowed for x-axes, not {y_line[0]}')
+            raise Exception(f'Only "|--", "--|", "---" and "|-|" borders types are allowed for y-axes, not {y_line[0]}')
         params['y_border_type'], params['y_min'], params['y_max'] = y_line[0], float(y_line[1]), float(y_line[2])
 
-        z_line = f.readline().split()
+        z_line = [f.readline().rstrip(), f.readline(), f.readline()]
         if z_line[0] not in ('|--', '--|', '|-|', '---'):
-            raise Exception(f'Only "|--", "--|", "---" and "|-|" borders types are allowed for x-axes, not {z_line[0]}')
+            raise Exception(f'Only "|--", "--|", "---" and "|-|" borders types are allowed for z-axes, not {z_line[0]}')
         params['z_border_type'], params['z_min'], params['z_max'] = z_line[0], float(z_line[1]), float(z_line[2])
 
         params['log_param'] = int(f.readline())
         params['t_max'] = float(f.readline())
-        params['random_state'] = 227
+        params['random_state'] = 228
 
     system = SystemBuilder(**params)
     system.start_loop()
     # plot(system.spheres)
+
+# TODO:
+# 1. чтение input.cfg переделать
+# 2. Velocity -> numpy
+# 3. выпилить plot, запилить архив
+# 4. визуализатор в виде .py

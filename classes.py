@@ -103,9 +103,15 @@ class System:
 
             s = Sphere(**params)
 
+            flag = False
+
             for other in self.spheres:
                 if self.collides_with(s, other):
-                    continue
+                    flag = True
+                    break
+
+            if flag:
+                continue
 
             self.spheres += [s]
             ind += 1
