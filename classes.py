@@ -157,32 +157,36 @@ class System:
                 s.v[2] = s.v[2] - s.mass * self.params['g'] * tau
 
             if current_step % self.params['log_param'] == 0:
-                plot(self.spheres, **{
-                    'x_min': self.params['x_min'],
-                    'x_max': self.params['x_max'],
-                    'y_min': self.params['y_min'],
-                    'y_max': self.params['y_max'],
-                    'z_min': self.params['z_min'],
-                    'z_max': self.params['z_max'],
-                })
+                # plot(self.spheres, **{
+                #     'x_min': self.params['x_min'],
+                #     'x_max': self.params['x_max'],
+                #     'y_min': self.params['y_min'],
+                #     'y_max': self.params['y_max'],
+                #     'z_min': self.params['z_min'],
+                #     'z_max': self.params['z_max'],
+                # })
 
-                # print(f'{current_step=}; {current_t=:.4f}')
-                #
-                # with open(join(outdir, f'{current_step // self.params["log_param"]:#08}.plt'), 'w') as f:
-                #     f.write(
-                #         f'TITLE "Title, {current_t=:.4f}; x_min={self.params["x_min"]:.4f}; x_max={self.params["x_max"]:.4f}; y_min={self.params["y_min"]:.4f}; y_max={self.params["y_max"]:.4f}; z_min={self.params["z_min"]:.4f}; z_max={"+inf" if None is self.params["z_max"] else self.params["z_max"]:.4f}; spheres_num={len(self.spheres)}"\n'
-                #     )
-                #     f.write(f'VARIABLES = "X" "Y" "Z" "R" "M"\n')
-                #
-                #     for s in self.spheres:
-                #         f.write(f'{s.coords[0]:.4f} {s.coords[1]:.4f} {s.coords[2]:.4f} {s.radius:.4f} {s.mass:.4f}\n')
+                print(f'current_step={current_step}; current_t={current_t:.4f}')
+
+                with open(join(outdir, f'{current_step // self.params["log_param"]:#08}.plt'), 'w') as f:
+                    f.write(
+                        f'TITLE "Title, current_t={current_t:.4f}; x_min={self.params["x_min"]:.4f}; x_max={self.params["x_max"]:.4f}; y_min={self.params["y_min"]:.4f}; y_max={self.params["y_max"]:.4f}; z_min={self.params["z_min"]:.4f}; z_max={self.params["z_max"]:.4f}; spheres_num={len(self.spheres)}"\n'
+                    )
+                    f.write(f'VARIABLES = "X" "Y" "Z" "R" "M"\n')
+
+                    for s in self.spheres:
+                        f.write(f'{s.coords[0]:.4f} {s.coords[1]:.4f} {s.coords[2]:.4f} {s.radius:.4f} {s.mass:.4f}\n')
 
     @staticmethod
     def distance(s1, s2):
         return np.linalg.norm(s1.coords - s2.coords)
 
 
-@lambda c: c()
+def singleton_decorator(c):
+    return c()
+
+# @lambda c: c()  # doesn't work for python3.8-
+@singleton_decorator
 class SystemBuilder:
     system = None
 

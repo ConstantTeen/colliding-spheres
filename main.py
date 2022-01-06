@@ -40,6 +40,3 @@ if __name__ == '__main__':
     system.start_loop()
     # plot(system.spheres)
 
-# TODO:
-# 3. выпилить plot, запилить архив
-# 4. визуализатор в виде .py
